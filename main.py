@@ -18,20 +18,25 @@ sbsys: SbsysClientManager
 procesnavn = "Farlig skolevej"
 
 
+def hent_værdi(elementer, identifier, key):
+    match = filter_by_predicate(roots=elementer, predicate=lambda x: x["identifier"] == identifier)
+    return match[0].get("values", {}).get(key) if match else None
+
+
 async def populate_queue(workqueue: Workqueue):
     logger = logging.getLogger(__name__)
 
     logger.info("Hello from populate workqueue!")
 
-    async with sbsys:
-        borger = await sbsys.borger.hent_borger("xx")
-        borgers_sager = await sbsys.sager.hent_sager_på_borger("xx")
+    # async with sbsys:
+    #     borger = await sbsys.borger.hent_borger("xx")
+    #     borgers_sager = await sbsys.sager.hent_sager_på_borger("xx")
 
-    borgers_sager = [sag for sag in borgers_sager if "Indskrivning Klasse" in sag.get("SagsTitel", "")]
+    # borgers_sager = [sag for sag in borgers_sager if "Indskrivning Klasse" in sag.get("SagsTitel", "")] # Behold kun indskrivningssager
     
     xlow_søge_query = {
         "text": "",
-        "processTemplateIds": ["753"], # skal have id fra benner
+        "processTemplateIds": ["810"], # skal have id fra benner
         "startIndex": 0,
         "createdDateFrom": "01-01-1980",
         "createdDateTo": datetime.today().strftime("%d-%m-%Y"),
@@ -42,13 +47,25 @@ async def populate_queue(workqueue: Workqueue):
         activity_name="RPAIntegration",
     )
 
+    blanketnavne = [
+        "Elevbefordring 0.-9. klasse - Vurdering (ny)",  # skal have navn fra benner
+        "Elevbefordring 0.-9. klasse - oplysninger om udfylder og barnet (ny)",  # skal have navn fra benner
+    ]
+
     for proces in igangværende_processer:
         blanketter = proces["blanketter"]
 
         samlet_ansøgning = filter_by_predicate(
-            roots=blanketter, predicate=lambda x: x["blanketnavn"] == "SBH - Samlet" # skal have navn fra benner
+            roots=blanketter, predicate=lambda x: x["blanketnavn"] == blanketnavne[0]
+        ) + filter_by_predicate(
+            roots=blanketter, predicate=lambda x: x["blanketnavn"] == blanketnavne[1]
         )
 
+        barnets_adresse = hent_værdi(samlet_ansøgning[0]["elementer"], "ElementAdresse", "Adresse")
+        barnets_klasse  = hent_værdi(samlet_ansøgning[0]["elementer"], "ElementVaerdilisteKlassetrin", "Valgtevaerdi")
+        barnets_cpr     = hent_værdi(samlet_ansøgning[1]["elementer"], "BarnetsOplysninger", "CprNummer")
+
+        print("hej")
 
 async def process_workqueue(workqueue: Workqueue):
     logger = logging.getLogger(__name__)
