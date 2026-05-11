@@ -9,6 +9,7 @@ dependencies = [
     "kmd-nexus-client",
     "odk-tools",
     "ruff>=0.15.12",
+    "sbsys",
     "xflow-client",
 ]
 
@@ -17,3 +18,4 @@ automation-server-client = { git = "https://github.com/odense-rpa/automation-ser
 odk-tools = { git = "https://github.com/odense-rpa/odk-tools.git" }
 xflow-client = { git = "https://github.com/odense-rpa/xflow-client.git" }
 kmd-nexus-client = { git = "https://github.com/odense-rpa/nexus-client.git" }
+sbsys = { git = "https://github.com/odense-rpa/sbsys-ng.git" }

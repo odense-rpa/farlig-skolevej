@@ -5,6 +5,8 @@ import sys
 
 from automation_server_client import AutomationServer, Workqueue, WorkItemError, Credential, WorkItemStatus
 from odk_tools.tracking import Tracker
+from sbsys.manager import SbsysClientManager
+#from sbsys.models import Skabelon, Sag
 from xflow_client import XFlowClient, ProcessClient
 from kmd_nexus_client.tree_helpers import (
     filter_by_predicate,
@@ -12,6 +14,8 @@ from kmd_nexus_client.tree_helpers import (
 
 xflow_client: XFlowClient
 xflow_process_client: ProcessClient
+sbsys: SbsysClientManager
+procesnavn = "Farlig skolevej"
 
 
 async def populate_queue(workqueue: Workqueue):
@@ -19,6 +23,12 @@ async def populate_queue(workqueue: Workqueue):
 
     logger.info("Hello from populate workqueue!")
 
+    async with sbsys:
+        borger = await sbsys.borger.hent_borger("xx")
+        borgers_sager = await sbsys.sager.hent_sager_på_borger("xx")
+
+    borgers_sager = [sag for sag in borgers_sager if "Indskrivning Klasse" in sag.get("SagsTitel", "")]
+    
     xlow_søge_query = {
         "text": "",
         "processTemplateIds": ["753"], # skal have id fra benner
@@ -65,6 +75,7 @@ if __name__ == "__main__":
     # Initialize external systems for automation here..
     xflow_credential = Credential.get_credential("Xflow - produktion")
     tracking_credential = Credential.get_credential("Odense SQL Server")
+    sbsys_credential = Credential.get_credential("SBSYS - produktion")
 
     xflow_client = XFlowClient(
         token=xflow_credential.password,
@@ -74,6 +85,15 @@ if __name__ == "__main__":
 
     tracker = Tracker(
         username=tracking_credential.username, password=tracking_credential.password
+    )
+
+    sbsys = SbsysClientManager(
+        sbsys_credential.data["base_url"],
+        sbsys_credential.data["token_url"],
+        sbsys_credential.data["client_id"],
+        sbsys_credential.data["client_secret"],
+        sbsys_credential.username,
+        sbsys_credential.password
     )
 
 
