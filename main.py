@@ -1,5 +1,6 @@
 import asyncio
 from datetime import datetime
+from rapidfuzz.distance import Levenshtein
 import logging
 import sys
 
@@ -8,6 +9,7 @@ from odk_tools.tracking import Tracker
 from sbsys.manager import SbsysClientManager
 #from sbsys.models import Skabelon, Sag
 from xflow_client import XFlowClient, ProcessClient
+from process.xflow import afsend_til_xflow
 from kmd_nexus_client.tree_helpers import (
     filter_by_predicate,
 )
@@ -28,11 +30,7 @@ async def populate_queue(workqueue: Workqueue):
 
     logger.info("Hello from populate workqueue!")
 
-    # async with sbsys:
-    #     borger = await sbsys.borger.hent_borger("xx")
-    #     borgers_sager = await sbsys.sager.hent_sager_på_borger("xx")
 
-    # borgers_sager = [sag for sag in borgers_sager if "Indskrivning Klasse" in sag.get("SagsTitel", "")] # Behold kun indskrivningssager
     
     xlow_søge_query = {
         "text": "",
@@ -65,6 +63,15 @@ async def populate_queue(workqueue: Workqueue):
         barnets_klasse  = hent_værdi(samlet_ansøgning[0]["elementer"], "ElementVaerdilisteKlassetrin", "Valgtevaerdi")
         barnets_cpr     = hent_værdi(samlet_ansøgning[1]["elementer"], "BarnetsOplysninger", "CprNummer")
 
+        data = {
+            "procesid": proces["publicId"],
+            "barnets_cpr": barnets_cpr,
+            "barnets_klasse": barnets_klasse,
+            "barnets_adresse": barnets_adresse,
+        }
+        workqueue.add_item(data, barnets_cpr)
+
+
         print("hej")
 
 async def process_workqueue(workqueue: Workqueue):
@@ -75,10 +82,26 @@ async def process_workqueue(workqueue: Workqueue):
     for item in workqueue:
         with item:
             data = item.data  # Item data deserialized from json as dict
- 
             try:
-                # Process the item here
-                pass
+                async with sbsys:
+                  borger = await sbsys.borger.hent_borger(data["barnets_cpr"])
+                  borgers_sager = await sbsys.sager.hent_sager_på_borger(data["barnets_cpr"])
+
+                borgers_sager = [sag for sag in borgers_sager if "Indskrivning Klasse" in sag.get("SagsTitel", "")] # Behold kun indskrivningssager
+                if not borgers_sager:
+                    raise WorkItemError(f"Borger med CPR {data['barnets_cpr']} har ingen indskrivningssager i sbsys.")
+                adresse = borger["Adresse"]["Adresse1"] + ", " + borger["Adresse"]["Bynavn"] + ", " + str(borger["Adresse"]["PostNummer"]) + " " + borger["Adresse"]["PostDistrikt"]
+
+                # Checker om adressen i xflow og sbsys er ens nok, hvis ikke sendes den til manuel behandling
+                distance = Levenshtein.distance(adresse.lower(), data["barnets_adresse"].lower())
+                til_manuel = distance / max(len(adresse), len(data["barnets_adresse"])) > 0.10
+
+                #TODO find ud af præcis, hvad der skal sendes tilbage til benner og venner
+                afsend_til_xflow(xflow_process_client, data["procesid"], adresse, data["barnets_klasse"])
+                
+
+                
+                print("hej")
             except WorkItemError as e:
                 # A WorkItemError represents a soft error that indicates the item should be passed to manual processing or a business logic fault
                 logger.error(f"Error processing item: {data}. Error: {e}")

@@ -8,6 +8,7 @@ dependencies = [
     "automation-server-client",
     "kmd-nexus-client",
     "odk-tools",
+    "rapidfuzz>=3.14.5",
     "ruff>=0.15.12",
     "sbsys",
     "xflow-client",
