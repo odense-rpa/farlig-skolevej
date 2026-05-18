@@ -84,20 +84,19 @@ async def process_workqueue(workqueue: Workqueue):
             data = item.data  # Item data deserialized from json as dict
             try:
                 async with sbsys:
-                  borger = await sbsys.borger.hent_borger(data["barnets_cpr"])
+                #   borger = await sbsys.borger.hent_borger(data["barnets_cpr"])
                   borgers_sager = await sbsys.sager.hent_sager_på_borger(data["barnets_cpr"])
 
                 borgers_sager = [sag for sag in borgers_sager if "Indskrivning Klasse" in sag.get("SagsTitel", "")] # Behold kun indskrivningssager
                 if not borgers_sager:
                     raise WorkItemError(f"Borger med CPR {data['barnets_cpr']} har ingen indskrivningssager i sbsys.")
-                adresse = borger["Adresse"]["Adresse1"] + ", " + borger["Adresse"]["Bynavn"] + ", " + str(borger["Adresse"]["PostNummer"]) + " " + borger["Adresse"]["PostDistrikt"]
+                # adresse = borger["Adresse"]["Adresse1"] + ", " + borger["Adresse"]["Bynavn"] + ", " + str(borger["Adresse"]["PostNummer"]) + " " + borger["Adresse"]["PostDistrikt"]
 
                 # Checker om adressen i xflow og sbsys er ens nok, hvis ikke sendes den til manuel behandling
-                distance = Levenshtein.distance(adresse.lower(), data["barnets_adresse"].lower())
-                til_manuel = distance / max(len(adresse), len(data["barnets_adresse"])) > 0.10
+                # distance = Levenshtein.distance(adresse.lower(), data["barnets_adresse"].lower())
+                # til_manuel = distance / max(len(adresse), len(data["barnets_adresse"])) > 0.10
 
-                #TODO find ud af præcis, hvad der skal sendes tilbage til benner og venner
-                afsend_til_xflow(xflow_process_client, data["procesid"], adresse, data["barnets_klasse"])
+                afsend_til_xflow(xflow_process_client, data["procesid"], borgers_sager[0]["SagsTitel"])
                 
 
                 
