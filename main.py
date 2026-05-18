@@ -46,8 +46,8 @@ async def populate_queue(workqueue: Workqueue):
     )
 
     blanketnavne = [
-        "Elevbefordring 0.-9. klasse - Vurdering (ny)",  # skal have navn fra benner
-        "Elevbefordring 0.-9. klasse - oplysninger om udfylder og barnet (ny)",  # skal have navn fra benner
+        "Elevbefordring 0.-9. klasse - Vurdering (ny)",
+        "Elevbefordring 0.-9. klasse - oplysninger om udfylder og barnet (ny)",
     ]
 
     for proces in igangværende_processer:
@@ -94,6 +94,8 @@ async def process_workqueue(workqueue: Workqueue):
                 # til_manuel = distance / max(len(adresse), len(data["barnets_adresse"])) > 0.10
 
                 afsend_til_xflow(xflow_process_client, data["procesid"], borgers_sager[0]["SagsTitel"])
+
+                tracker.track_task(process_name=procesnavn)
 
             except WorkItemError as e:
                 # A WorkItemError represents a soft error that indicates the item should be passed to manual processing or a business logic fault
