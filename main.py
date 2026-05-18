@@ -71,9 +71,6 @@ async def populate_queue(workqueue: Workqueue):
         }
         workqueue.add_item(data, barnets_cpr)
 
-
-        print("hej")
-
 async def process_workqueue(workqueue: Workqueue):
     logger = logging.getLogger(__name__)
 
@@ -97,10 +94,7 @@ async def process_workqueue(workqueue: Workqueue):
                 # til_manuel = distance / max(len(adresse), len(data["barnets_adresse"])) > 0.10
 
                 afsend_til_xflow(xflow_process_client, data["procesid"], borgers_sager[0]["SagsTitel"])
-                
 
-                
-                print("hej")
             except WorkItemError as e:
                 # A WorkItemError represents a soft error that indicates the item should be passed to manual processing or a business logic fault
                 logger.error(f"Error processing item: {data}. Error: {e}")
