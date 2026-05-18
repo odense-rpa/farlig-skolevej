@@ -4,10 +4,17 @@ from rapidfuzz.distance import Levenshtein
 import logging
 import sys
 
-from automation_server_client import AutomationServer, Workqueue, WorkItemError, Credential, WorkItemStatus
+from automation_server_client import (
+    AutomationServer,
+    Workqueue,
+    WorkItemError,
+    Credential,
+    WorkItemStatus,
+)
 from odk_tools.tracking import Tracker
 from sbsys.manager import SbsysClientManager
-#from sbsys.models import Skabelon, Sag
+
+# from sbsys.models import Skabelon, Sag
 from xflow_client import XFlowClient, ProcessClient
 from process.xflow import afsend_til_xflow
 from kmd_nexus_client.tree_helpers import (
@@ -21,7 +28,9 @@ procesnavn = "Farlig skolevej"
 
 
 def hent_værdi(elementer, identifier, key):
-    match = filter_by_predicate(roots=elementer, predicate=lambda x: x["identifier"] == identifier)
+    match = filter_by_predicate(
+        roots=elementer, predicate=lambda x: x["identifier"] == identifier
+    )
     return match[0].get("values", {}).get(key) if match else None
 
 
@@ -30,11 +39,9 @@ async def populate_queue(workqueue: Workqueue):
 
     logger.info("Hello from populate workqueue!")
 
-
-    
     xlow_søge_query = {
         "text": "",
-        "processTemplateIds": ["810"], # skal have id fra benner
+        "processTemplateIds": ["810"],  # skal have id fra benner
         "startIndex": 0,
         "createdDateFrom": "01-01-1980",
         "createdDateTo": datetime.today().strftime("%d-%m-%Y"),
@@ -59,9 +66,17 @@ async def populate_queue(workqueue: Workqueue):
             roots=blanketter, predicate=lambda x: x["blanketnavn"] == blanketnavne[1]
         )
 
-        barnets_adresse = hent_værdi(samlet_ansøgning[0]["elementer"], "ElementAdresse", "Adresse")
-        barnets_klasse  = hent_værdi(samlet_ansøgning[0]["elementer"], "ElementVaerdilisteKlassetrin", "Valgtevaerdi")
-        barnets_cpr     = hent_værdi(samlet_ansøgning[1]["elementer"], "BarnetsOplysninger", "CprNummer")
+        barnets_adresse = hent_værdi(
+            samlet_ansøgning[0]["elementer"], "ElementAdresse", "Adresse"
+        )
+        barnets_klasse = hent_værdi(
+            samlet_ansøgning[0]["elementer"],
+            "ElementVaerdilisteKlassetrin",
+            "Valgtevaerdi",
+        )
+        barnets_cpr = hent_værdi(
+            samlet_ansøgning[1]["elementer"], "BarnetsOplysninger", "CprNummer"
+        )
 
         data = {
             "procesid": proces["publicId"],
@@ -70,6 +85,7 @@ async def populate_queue(workqueue: Workqueue):
             "barnets_adresse": barnets_adresse,
         }
         workqueue.add_item(data, barnets_cpr)
+
 
 async def process_workqueue(workqueue: Workqueue):
     logger = logging.getLogger(__name__)
@@ -81,19 +97,31 @@ async def process_workqueue(workqueue: Workqueue):
             data = item.data  # Item data deserialized from json as dict
             try:
                 async with sbsys:
-                #   borger = await sbsys.borger.hent_borger(data["barnets_cpr"])
-                  borgers_sager = await sbsys.sager.hent_sager_på_borger(data["barnets_cpr"])
+                    #   borger = await sbsys.borger.hent_borger(data["barnets_cpr"])
+                    borgers_sager = await sbsys.sager.hent_sager_på_borger(
+                        data["barnets_cpr"]
+                    )
 
-                borgers_sager = [sag for sag in borgers_sager if "Indskrivning Klasse" in sag.get("SagsTitel", "")] # Behold kun indskrivningssager
+                borgers_sager = [
+                    sag
+                    for sag in borgers_sager
+                    if "Indskrivning Klasse" in sag.get("SagsTitel", "")
+                ]  # Behold kun indskrivningssager
                 if not borgers_sager:
-                    raise WorkItemError(f"Borger med CPR {data['barnets_cpr']} har ingen indskrivningssager i sbsys.")
+                    raise WorkItemError(
+                        f"Borger med CPR {data['barnets_cpr']} har ingen indskrivningssager i sbsys."
+                    )
                 # adresse = borger["Adresse"]["Adresse1"] + ", " + borger["Adresse"]["Bynavn"] + ", " + str(borger["Adresse"]["PostNummer"]) + " " + borger["Adresse"]["PostDistrikt"]
 
                 # Checker om adressen i xflow og sbsys er ens nok, hvis ikke sendes den til manuel behandling
                 # distance = Levenshtein.distance(adresse.lower(), data["barnets_adresse"].lower())
                 # til_manuel = distance / max(len(adresse), len(data["barnets_adresse"])) > 0.10
 
-                afsend_til_xflow(xflow_process_client, data["procesid"], borgers_sager[0]["SagsTitel"])
+                afsend_til_xflow(
+                    xflow_process_client,
+                    data["procesid"],
+                    borgers_sager[0]["SagsTitel"],
+                )
 
                 tracker.track_task(process_name=procesnavn)
 
@@ -128,9 +156,8 @@ if __name__ == "__main__":
         sbsys_credential.data["client_id"],
         sbsys_credential.data["client_secret"],
         sbsys_credential.username,
-        sbsys_credential.password
+        sbsys_credential.password,
     )
-
 
     # Queue management
     if "--queue" in sys.argv:
