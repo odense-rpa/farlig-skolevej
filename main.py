@@ -41,7 +41,7 @@ async def populate_queue(workqueue: Workqueue):
 
     xlow_søge_query = {
         "text": "",
-        "processTemplateIds": ["810"],  # skal have id fra benner
+        "processTemplateIds": ["811"],  # skal have id fra benner
         "startIndex": 0,
         "createdDateFrom": "01-01-1980",
         "createdDateTo": datetime.today().strftime("%d-%m-%Y"),
