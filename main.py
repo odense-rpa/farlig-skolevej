@@ -15,7 +15,7 @@ from odk_tools.tracking import Tracker
 from sbsys.manager import SbsysClientManager
 
 # from sbsys.models import Skabelon, Sag
-from xflow_client import XFlowClient, ProcessClient
+from xflow_client import XFlowClient, ProcessClient, RightsGroupClient
 from process.xflow import afsend_til_xflow
 from kmd_nexus_client.tree_helpers import (
     filter_by_predicate,
@@ -23,6 +23,8 @@ from kmd_nexus_client.tree_helpers import (
 
 xflow_client: XFlowClient
 xflow_process_client: ProcessClient
+xflow_rights_group_client: RightsGroupClient
+tracker: Tracker
 sbsys: SbsysClientManager
 procesnavn = "Farlig skolevej"
 
@@ -41,7 +43,7 @@ async def populate_queue(workqueue: Workqueue):
 
     xlow_søge_query = {
         "text": "",
-        "processTemplateIds": ["811"],  # skal have id fra benner
+        "processTemplateIds": ["813"],  # skal have id fra benner
         "startIndex": 0,
         "createdDateFrom": "01-01-1980",
         "createdDateTo": datetime.today().strftime("%d-%m-%Y"),
@@ -91,6 +93,7 @@ async def process_workqueue(workqueue: Workqueue):
     logger = logging.getLogger(__name__)
 
     logger.info("Hello from process workqueue!")
+    rettighedsgruppe = xflow_rights_group_client.get_rights_group("BKF - Mobil i Odense")
 
     for item in workqueue:
         with item:
@@ -107,20 +110,19 @@ async def process_workqueue(workqueue: Workqueue):
                     for sag in borgers_sager
                     if "Indskrivning Klasse" in sag.get("SagsTitel", "")
                 ]  # Behold kun indskrivningssager
-                if not borgers_sager:
-                    raise WorkItemError(
-                        f"Borger med CPR {data['barnets_cpr']} har ingen indskrivningssager i sbsys."
-                    )
                 # adresse = borger["Adresse"]["Adresse1"] + ", " + borger["Adresse"]["Bynavn"] + ", " + str(borger["Adresse"]["PostNummer"]) + " " + borger["Adresse"]["PostDistrikt"]
 
                 # Checker om adressen i xflow og sbsys er ens nok, hvis ikke sendes den til manuel behandling
                 # distance = Levenshtein.distance(adresse.lower(), data["barnets_adresse"].lower())
                 # til_manuel = distance / max(len(adresse), len(data["barnets_adresse"])) > 0.10
 
+                # Sætter titlen til en nummereret liste af indskrivningssager, eller en fejlbesked hvis ingen sager findes
+                titel = "\n".join(f"{i}. {sag['SagsTitel']}" for i, sag in enumerate(borgers_sager, 1)) if borgers_sager else "Ingen indskrivningssager fundet i sbsys"
                 afsend_til_xflow(
                     xflow_process_client,
                     data["procesid"],
-                    borgers_sager[0]["SagsTitel"],
+                    titel,
+                    rettighedsgruppe["id"],
                 )
 
                 tracker.track_task(process_name=procesnavn)
@@ -145,6 +147,7 @@ if __name__ == "__main__":
         instance=xflow_credential.data["instance"],
     )
     xflow_process_client = ProcessClient(xflow_client)
+    xflow_rights_group_client = RightsGroupClient(xflow_client)
 
     tracker = Tracker(
         username=tracking_credential.username, password=tracking_credential.password

@@ -1,7 +1,7 @@
 from datetime import datetime
 
 
-def afsend_til_xflow(xflow_process_client, procesid: str, addresse: str):
+def afsend_til_xflow(xflow_process_client, procesid: str, addresse: str, rettighedsgruppe: int,):
     blanket_data = {
         "formValues": [
             {
@@ -22,4 +22,4 @@ def afsend_til_xflow(xflow_process_client, procesid: str, addresse: str):
         ]
     }
     xflow_process_client.update_process(procesid, blanket_data)
-    xflow_process_client.advance_process(procesid)
+    xflow_process_client.advance_process(procesid, rettighedsgruppe)
