@@ -4,7 +4,7 @@ Automatisering der behandler ansøgninger om befordring på farlig skolevej fra 
 
 ## Hvad gør robotten?
 
-1. **Henter ansøgninger** fra XFlow via `ProcessClient` – søger efter processer i aktiviteten `RPAIntegration` (proceskabelon ID 810)
+1. **Henter ansøgninger** fra XFlow via `ProcessClient` – søger efter processer i aktiviteten `RPAIntegration` (proceskabelon ID 813)
 2. **Udtrækker data** fra ansøgningens blanketter: barnets adresse, klassetrin og CPR-nummer
 3. **Tilføjer til arbejdskø** i Automation Server til efterfølgende behandling
 4. **Slår borgerens indskrivningssag op** i SBSYS for at finde den relevante "Indskrivning Klasse"-sag

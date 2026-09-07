@@ -1,6 +1,5 @@
 import asyncio
 from datetime import datetime
-from rapidfuzz.distance import Levenshtein
 import logging
 import sys
 
@@ -43,7 +42,7 @@ async def populate_queue(workqueue: Workqueue):
 
     xlow_søge_query = {
         "text": "",
-        "processTemplateIds": ["813"],  # skal have id fra benner
+        "processTemplateIds": ["813"], 
         "startIndex": 0,
         "createdDateFrom": "01-01-1980",
         "createdDateTo": datetime.today().strftime("%d-%m-%Y"),
@@ -68,14 +67,6 @@ async def populate_queue(workqueue: Workqueue):
             roots=blanketter, predicate=lambda x: x["blanketnavn"] == blanketnavne[1]
         )
 
-        barnets_adresse = hent_værdi(
-            samlet_ansøgning[0]["elementer"], "ElementAdresse", "Adresse"
-        )
-        barnets_klasse = hent_værdi(
-            samlet_ansøgning[0]["elementer"],
-            "ElementVaerdilisteKlassetrin",
-            "Valgtevaerdi",
-        )
         barnets_cpr = hent_værdi(
             samlet_ansøgning[1]["elementer"], "BarnetsOplysninger", "CprNummer"
         )
@@ -83,8 +74,6 @@ async def populate_queue(workqueue: Workqueue):
         data = {
             "procesid": proces["publicId"],
             "barnets_cpr": barnets_cpr,
-            "barnets_klasse": barnets_klasse,
-            "barnets_adresse": barnets_adresse,
         }
         workqueue.add_item(data, barnets_cpr)
 
@@ -110,11 +99,6 @@ async def process_workqueue(workqueue: Workqueue):
                     for sag in borgers_sager
                     if "Indskrivning Klasse" in sag.get("SagsTitel", "")
                 ]  # Behold kun indskrivningssager
-                # adresse = borger["Adresse"]["Adresse1"] + ", " + borger["Adresse"]["Bynavn"] + ", " + str(borger["Adresse"]["PostNummer"]) + " " + borger["Adresse"]["PostDistrikt"]
-
-                # Checker om adressen i xflow og sbsys er ens nok, hvis ikke sendes den til manuel behandling
-                # distance = Levenshtein.distance(adresse.lower(), data["barnets_adresse"].lower())
-                # til_manuel = distance / max(len(adresse), len(data["barnets_adresse"])) > 0.10
 
                 # Sætter titlen til en nummereret liste af indskrivningssager, eller en fejlbesked hvis ingen sager findes
                 titel = "\n".join(f"{i}. {sag['SagsTitel']}" for i, sag in enumerate(borgers_sager, 1)) if borgers_sager else "Ingen indskrivningssager fundet i sbsys"
