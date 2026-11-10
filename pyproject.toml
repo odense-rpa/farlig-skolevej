@@ -1,7 +1,7 @@
 [project]
-name = "process-template"
-version = "0.3.0"
-description = "Add your description here"
+name = "farlig-skolevej"
+version = "0.4.0"
+description = "RPA-robot der behandler ansøgninger om befordring på farlig skolevej fra XFlow og opdaterer med indskrivningssager fra SBSYS"
 readme = "README.md"
 requires-python = ">=3.13"
 dependencies = [
@@ -9,9 +9,13 @@ dependencies = [
     "kmd-nexus-client",
     "odk-tools",
     "rapidfuzz>=3.14.5",
-    "ruff>=0.15.12",
     "sbsys",
     "xflow-client",
+]
+
+[dependency-groups]
+dev = [
+    "ruff>=0.15.12",
 ]
 
 [tool.uv.sources]

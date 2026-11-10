@@ -1,7 +1,9 @@
 from datetime import datetime
 
 
-def afsend_til_xflow(xflow_process_client, procesid: str, addresse: str, rettighedsgruppe: int,):
+def afsend_til_xflow(
+    xflow_process_client, procesid: str, skoleinfo: str, rettighedsgruppe: int
+):
     blanket_data = {
         "formValues": [
             {
@@ -17,7 +19,7 @@ def afsend_til_xflow(xflow_process_client, procesid: str, addresse: str, rettigh
             {
                 "elementIdentifier": "Textfield-RPA-Skole",
                 "valueIdentifier": "Tekst",
-                "value": addresse,
+                "value": skoleinfo,
             },
         ]
     }
